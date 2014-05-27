@@ -1,13 +1,10 @@
 package com.dhara.googlecalendartrial;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -21,6 +18,10 @@ import android.support.v4.util.ArrayMap;
 import android.util.Log;
 import android.view.Menu;
 
+import com.dhara.googlecalendartrial.MyApplication.TrackerName;
+import com.google.android.gms.analytics.GoogleAnalytics;
+import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.Tracker;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeRequestUrl;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
@@ -33,7 +34,6 @@ import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.Calendar.Events.List;
 import com.google.api.services.calendar.CalendarRequest;
 import com.google.api.services.calendar.CalendarRequestInitializer;
-import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.Events;
 
@@ -50,6 +50,8 @@ public class MainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		GoogleAnalytics analytics = GoogleAnalytics.getInstance(this);
+		analytics.setLocalDispatchPeriod(10);
 		getAccounts();
 	}
 
@@ -82,6 +84,17 @@ public class MainActivity extends Activity {
 				}
 			}
 		}, null);
+		
+		// Get tracker.
+        Tracker t = ((MyApplication)getApplication()).getTracker(
+            TrackerName.GLOBAL_TRACKER);
+
+        // Set screen name.
+        // Where path is a String representing the screen name.
+        t.setScreenName(getString(R.string.path));
+
+        // Send a screen view.
+        t.send(new HitBuilders.AppViewBuilder().build());
 	}
 	
 	private void setUp( final String userAccount){
