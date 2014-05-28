@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
+import java.util.TimeZone;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -14,9 +16,13 @@ import android.accounts.OperationCanceledException;
 import android.os.Bundle;
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 
@@ -35,11 +41,13 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.Calendar.Events.List;
 import com.google.api.services.calendar.CalendarRequest;
 import com.google.api.services.calendar.CalendarRequestInitializer;
 import com.google.api.services.calendar.model.Event;
+import com.google.api.services.calendar.model.EventDateTime;
 import com.google.api.services.calendar.model.Events;
 
 public class MainActivity extends BaseActivity implements OnItemClickListener {
@@ -53,6 +61,9 @@ public class MainActivity extends BaseActivity implements OnItemClickListener {
 	private EventAdapter mEventsAdapter;
 	private java.util.List<Event> mEventList;
 	private Tracker t;
+	private String mUserAccount;
+	private Calendar service;
+	
 	//private GoogleApiClient mGoogleApiClient;
 	
 	@Override
@@ -68,6 +79,7 @@ public class MainActivity extends BaseActivity implements OnItemClickListener {
             TrackerName.GLOBAL_TRACKER);
 		
 		mListView = (ListView)findViewById(android.R.id.list);
+		registerForContextMenu(mListView);
 		mListView.setOnItemClickListener(this);
 		getAccounts();
 	}
@@ -218,7 +230,7 @@ public class MainActivity extends BaseActivity implements OnItemClickListener {
             .addOnConnectionFailedListener(this)
             .build();*/
 			
-			Calendar service = new Calendar.Builder(transport, jsonFactory, credential)
+			 service = new Calendar.Builder(transport, jsonFactory, credential)
 			.setApplicationName("GoogleCalendarTrial")
 			.setHttpRequestInitializer(credential)
 			.setCalendarRequestInitializer(new CalendarRequestInitializer() {
@@ -235,7 +247,7 @@ public class MainActivity extends BaseActivity implements OnItemClickListener {
 			})
 			.build();
 			
-			
+			mUserAccount = userAccount;
 			List find = service.events().list(userAccount);
 			Events events = find.execute();
 			mEventList = events.getItems();
@@ -294,5 +306,57 @@ public class MainActivity extends BaseActivity implements OnItemClickListener {
             .setAction("onItemClick of the events list")
             .setLabel("onItemClick of the listview, item clicked : " + event.getDescription())
             .build());
+	}
+	
+	public void addEventClick(View v) {
+		try {
+			Date startDate = new Date();
+			Date endDate = new Date(startDate.getTime() + 3600000);
+			DateTime start = new DateTime(startDate, TimeZone.getTimeZone("UTC"));
+			DateTime end = new DateTime(endDate, TimeZone.getTimeZone("UTC"));
+			
+			Event event = new Event();
+			event.setDescription("This is an android created event 2!");
+			event.setSummary("This is an android generated event 2!");
+			event.setStart(new EventDateTime().setDateTime(start));
+			event.setEnd(new EventDateTime().setDateTime(end));
+			
+			Event createdEvent  = service.events().insert(mUserAccount, event).execute();
+			Log.e("dhara","the created event id : " + createdEvent.getId());
+			
+			mEventList.add(createdEvent);
+			mEventsAdapter.notifyDataSetChanged();
+		}catch(IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+	    super.onCreateContextMenu(menu, v, menuInfo);
+	    AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
+	    String title = mEventList.get(info.position).getDescription();
+	    menu.setHeaderTitle(title);
+	    menu.add(Menu.NONE, 1, Menu.NONE, getString(R.string.delete_event));
+	}
+	
+	@Override
+	public boolean onContextItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+	    case 1:
+	        try {
+	        	AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+		        Log.d("dhara", "removing item pos=" + info.position);
+		        Event event = mEventList.get(info.position);
+		        service.events().delete(mUserAccount, event.getId()).execute();
+		        mEventList.remove(info.position);
+		        mEventsAdapter.notifyDataSetChanged();
+	        }catch(IOException e) {
+	        	e.printStackTrace();
+	        }
+	        return true;
+	    default:
+	        return super.onContextItemSelected(item);
+	    }
 	}
 }

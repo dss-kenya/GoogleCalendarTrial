@@ -3,12 +3,25 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity" 
-    android:background="@drawable/bg_img">
+    android:background="@drawable/bg_img_two">
     <ListView 
         android:id="@android:id/list"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="fill_parent"
         android:dividerHeight="1dp"
         android:divider="@android:color/transparent"
+        android:layout_above="@+id/btnAddEvent"
+        android:background="#44000000"
+        android:layout_alignParentTop="true"
         android:cacheColorHint="@android:color/transparent"></ListView>
+    <Button
+        android:id="@+id/btnAddEvent"
+        android:layout_width="fill_parent"
+        android:layout_height="75dip"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:layout_alignParentBottom="true"
+        android:onClick="addEventClick"
+        android:background="#55FFFFFF"
+        android:text="@string/add_event" />
 </RelativeLayout>
