@@ -11,9 +11,7 @@ import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
 import android.accounts.AccountManagerFuture;
 import android.accounts.OperationCanceledException;
-import android.app.Activity;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
 import android.view.Menu;
@@ -24,8 +22,10 @@ import android.widget.ListView;
 
 import com.dhara.googlecalendartrial.MyApplication.TrackerName;
 import com.dhara.googlecalendartrial.adapters.EventAdapter;
+import com.dhara.googlecalendartrial.utils.Utilities;
 import com.google.android.gms.analytics.GoogleAnalytics;
 import com.google.android.gms.analytics.HitBuilders;
+import com.google.android.gms.analytics.StandardExceptionParser;
 import com.google.android.gms.analytics.Tracker;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeRequestUrl;
@@ -42,7 +42,7 @@ import com.google.api.services.calendar.CalendarRequestInitializer;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.Events;
 
-public class MainActivity extends Activity implements OnItemClickListener {
+public class MainActivity extends BaseActivity implements OnItemClickListener {
 	private String AUTH_TOKEN_TYPE = "oauth2:https://www.googleapis.com/auth/calendar";//?key=AIzaSyCmbZhh76WL_yJ2vBRlwgJGlviMS_a1rOg";
 	private GoogleCredential credential;
 	private JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
@@ -83,9 +83,7 @@ public class MainActivity extends Activity implements OnItemClickListener {
 		accountManager = AccountManager.get(this.getBaseContext());
 		Account[] accounts = accountManager.getAccountsByType("com.google");
 		account = accounts[0]; 
-
-		Log.e("dhara","acc : " + account.name + " ");
-
+		Log.e("tag","acc : " + account.name + " ");
 		accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, MainActivity.this, new AccountManagerCallback<Bundle>() {
 			public void run(AccountManagerFuture<Bundle> future) {
 				try {
@@ -98,6 +96,12 @@ public class MainActivity extends Activity implements OnItemClickListener {
 					// TODO: The user has denied you access to the API, you should handle that
 				} catch (Exception e) {
 					e.printStackTrace();
+					
+					t.send(new HitBuilders.ExceptionBuilder()
+							.setDescription(Utilities.getMessage(e))
+							//.setDescription(new StandardExceptionParser(MainActivity.this, null).getDescription(Thread.currentThread().getName(), e))
+							.setFatal(false)
+							.build());
 				}
 			}
 		}, null);
@@ -138,7 +142,6 @@ public class MainActivity extends Activity implements OnItemClickListener {
 		    System.out.println("What is the authorization code?");
 		    String code = in.readLine();
 		    
-		    Log.e("dhara","value of code: " + code);
 		    // End of Step 1 <--
 
 		    // Step 2: Exchange -->
@@ -168,11 +171,8 @@ public class MainActivity extends Activity implements OnItemClickListener {
 		    					})
 		    					.build();
 		    
-		    List find = service.events().list("global");
-			Log.e("dhara","find : " + find.size());
-			
+		    List find = service.events().list("primary");
 			Events events = find.execute();
-			Log.e("dhara","events : " + events.size());
 		}catch(IOException e) {
 			e.printStackTrace();
 		}
@@ -180,19 +180,16 @@ public class MainActivity extends Activity implements OnItemClickListener {
 
 	private void useCalendarAPI(final String accessToken, final String userAccount) {
 		HttpTransport transport = AndroidHttp.newCompatibleTransport();
-		Log.e("dhara","accessToken : " + accessToken);
+		Log.e("tag","accessToken : " + accessToken);
 		credential = new GoogleCredential().setAccessToken(accessToken);
 		try {
 			//String path = "data/data/com.dhara.googlecalendartrial" + "/private_key";
-			String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/private_key/" + "3ceb5f543e0a13a3bd1028c5a32a89dab9397dbb-privatekey.p12";
+			//String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/private_key/" + "3ceb5f543e0a13a3bd1028c5a32a89dab9397dbb-privatekey.p12";
 			//java.io.File licenseFile = new java.io.File(path);
-			//Log.e("dhara","licenseFile.isFile() " + licenseFile.isFile());
 			//licenseFile.mkdir();
 			//licenseFile.mkdirs();
 			
 			//if(!licenseFile.mkdirs()) {
-			//	Log.e("dhara","file directory could not be created");
-				
 				//licenseFile.mkdirs();
 				//licenseFile.mkdir();
 			//}
@@ -240,29 +237,17 @@ public class MainActivity extends Activity implements OnItemClickListener {
 			
 			
 			List find = service.events().list(userAccount);
-			Log.e("dhara","find : " + find.size());
-			
 			Events events = find.execute();
-			Log.e("dhara","events : " + events.size());
-			
 			mEventList = events.getItems();
-			
-			/*if(eventList != null) {
-				for(int i=0;i<eventList.size();i++) {
-					Log.e("dhara","getting event desc : " + eventList.get(i).getDescription());
-					Log.e("dhara","getting event id : " + eventList.get(i).getId());
-					Log.e("dhara","getting event summary : " + eventList.get(i).getSummary());
-					Log.e("dhara","getting event start : " + eventList.get(i).getStart());
-				}
-			}*/
 			setAdapter();
 		}catch(IOException e) {
-			e.printStackTrace();
+			t.send(new HitBuilders.ExceptionBuilder()
+					.setDescription(new StandardExceptionParser(MainActivity.this, null).getDescription(Thread.currentThread().getName(), e))
+					.setFatal(false)
+					.build());
 			
-			Log.e("dhara","exception here");
 			e.printStackTrace();
 			accountManager.invalidateAuthToken(account.type, accessToken);
-			
 		}/*catch (GeneralSecurityException e) {
 			e.printStackTrace();
 		}*/
