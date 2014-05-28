@@ -17,8 +17,13 @@ import android.os.Environment;
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ListView;
 
 import com.dhara.googlecalendartrial.MyApplication.TrackerName;
+import com.dhara.googlecalendartrial.adapters.EventAdapter;
 import com.google.android.gms.analytics.GoogleAnalytics;
 import com.google.android.gms.analytics.HitBuilders;
 import com.google.android.gms.analytics.Tracker;
@@ -37,21 +42,33 @@ import com.google.api.services.calendar.CalendarRequestInitializer;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.Events;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements OnItemClickListener {
 	private String AUTH_TOKEN_TYPE = "oauth2:https://www.googleapis.com/auth/calendar";//?key=AIzaSyCmbZhh76WL_yJ2vBRlwgJGlviMS_a1rOg";
 	private GoogleCredential credential;
 	private JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
 	private String apiKey ="AIzaSyCl8ZaG9KMaRuZYXq8vslpxLsERwk0czHs";  //"AIzaSyCmbZhh76WL_yJ2vBRlwgJGlviMS_a1rOg";
 	private AccountManager accountManager;
 	private Account account;
+	private ListView mListView;
+	private EventAdapter mEventsAdapter;
+	private java.util.List<Event> mEventList;
+	private Tracker t;
 	//private GoogleApiClient mGoogleApiClient;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		
 		GoogleAnalytics analytics = GoogleAnalytics.getInstance(this);
 		analytics.setLocalDispatchPeriod(10);
+		
+		// Get tracker.
+        t = ((MyApplication)getApplication()).getTracker(
+            TrackerName.GLOBAL_TRACKER);
+		
+		mListView = (ListView)findViewById(android.R.id.list);
+		mListView.setOnItemClickListener(this);
 		getAccounts();
 	}
 
@@ -85,10 +102,6 @@ public class MainActivity extends Activity {
 			}
 		}, null);
 		
-		// Get tracker.
-        Tracker t = ((MyApplication)getApplication()).getTracker(
-            TrackerName.GLOBAL_TRACKER);
-
         // Set screen name.
         // Where path is a String representing the screen name.
         t.setScreenName(getString(R.string.path));
@@ -232,18 +245,17 @@ public class MainActivity extends Activity {
 			Events events = find.execute();
 			Log.e("dhara","events : " + events.size());
 			
-			java.util.List<Event> eventList = events.getItems();
+			mEventList = events.getItems();
 			
-			if(eventList != null) {
+			/*if(eventList != null) {
 				for(int i=0;i<eventList.size();i++) {
 					Log.e("dhara","getting event desc : " + eventList.get(i).getDescription());
 					Log.e("dhara","getting event id : " + eventList.get(i).getId());
 					Log.e("dhara","getting event summary : " + eventList.get(i).getSummary());
 					Log.e("dhara","getting event start : " + eventList.get(i).getStart());
 				}
-			}
-			
-			
+			}*/
+			setAdapter();
 		}catch(IOException e) {
 			e.printStackTrace();
 			
@@ -271,5 +283,31 @@ public class MainActivity extends Activity {
 		
 		/*service.accessKey = "AIzaSyAw1Ys2vLh152sKyfmbXUEK-aDKyhkwCFQ";
 		service.setApplicationName("GoogleCalendarTrial");*/
+	}
+	
+	private void setAdapter() {
+		if(mEventList != null && mEventList.size() >= 0) {
+			// do nothing 
+		}else {
+			mEventList = new ArrayList<Event>();
+		}
+		
+		mEventsAdapter = new EventAdapter(MainActivity.this, R.layout.individual_list_row, mEventList);
+		mListView.setAdapter(mEventsAdapter);
+	}
+
+	@Override
+	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+		
+		Event event = mEventList.get(position);
+		
+		// Get tracker.
+        Tracker t = ((MyApplication)getApplication()).getTracker(TrackerName.GLOBAL_TRACKER);
+        // Build and send an Event.
+        t.send(new HitBuilders.EventBuilder()
+            .setCategory("events")
+            .setAction("onItemClick of the events list")
+            .setLabel("onItemClick of the listview, item clicked : " + event.getDescription())
+            .build());
 	}
 }
