@@ -43,9 +43,11 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.Calendar;
+import com.google.api.services.calendar.Calendar.CalendarList;
 import com.google.api.services.calendar.Calendar.Events.List;
 import com.google.api.services.calendar.CalendarRequest;
 import com.google.api.services.calendar.CalendarRequestInitializer;
+import com.google.api.services.calendar.model.CalendarListEntry;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
 import com.google.api.services.calendar.model.Events;
@@ -248,6 +250,20 @@ public class MainActivity extends BaseActivity implements OnItemClickListener {
 			.build();
 			
 			mUserAccount = userAccount;
+			
+			CalendarList.List calendarList = service.calendarList().list();
+			
+			Log.e("tag","calendarList: " + calendarList.size());
+			java.util.List<CalendarListEntry> calendarListEntry = calendarList.execute().getItems();
+			
+			Log.e("tag","calendarListEntry: " + calendarListEntry.size());
+			
+			/*for(int i=0;i<calendarListEntry.size();i++) {
+				CalendarListEntry entry = calendarListEntry.get(i);
+				Log.e("tag","calendar entry : " + entry.getDescription());
+			}
+			
+			List find = service.events().list(userAccount).setCalendarId(calendarListEntry.get(2).getId());*/
 			List find = service.events().list(userAccount);
 			Events events = find.execute();
 			mEventList = events.getItems();
@@ -304,7 +320,7 @@ public class MainActivity extends BaseActivity implements OnItemClickListener {
         t.send(new HitBuilders.EventBuilder()
             .setCategory("events")
             .setAction("onItemClick of the events list")
-            .setLabel("onItemClick of the listview, item clicked : " + event.getDescription())
+            .setLabel("onItemClick of the listview, item clicked : " + event.getSummary())
             .build());
 	}
 	

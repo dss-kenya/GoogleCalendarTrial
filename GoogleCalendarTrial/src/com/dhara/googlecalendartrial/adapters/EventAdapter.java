@@ -40,7 +40,7 @@ public class EventAdapter extends ArrayAdapter<Event>{
 		}
 		
 		Event event = mEvents.get(position);
-		vh.txtEventName.setText(event.getDescription());
+		vh.txtEventName.setText(event.getSummary());
 		
 		return view;
 	}
